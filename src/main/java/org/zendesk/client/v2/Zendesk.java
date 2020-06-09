@@ -358,7 +358,7 @@ public class Zendesk implements Closeable {
 
     public Iterable<Ticket> getTicketsIncrementally(Date startTime) {
         return new PagedIterable<>(
-                tmpl("/incremental/tickets.json{?start_time}").set("start_time", msToSeconds(startTime.getTime())),
+                tmpl("/incremental/tickets.json{?start_time}&include=dates").set("start_time", msToSeconds(startTime.getTime())),
                 handleIncrementalList(Ticket.class, "tickets"));
     }
 
@@ -377,7 +377,7 @@ public class Zendesk implements Closeable {
     }
 
     public Iterable<Ticket> getTicketsByView(long viewId) {
-        return new PagedIterable<>(tmpl("/views/{viewId}/tickets.json").set("viewId", viewId),
+        return new PagedIterable<>(tmpl("/views/{viewId}/tickets.json?include=dates").set("viewId", viewId),
                 handleList(Ticket.class, "tickets"));
     }
 

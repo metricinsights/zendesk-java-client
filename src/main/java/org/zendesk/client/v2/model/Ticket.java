@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -28,6 +29,7 @@ public class Ticket extends Request implements SearchResultEntity {
     private Long problemId;
     private boolean hasIncidents;
     private Date dueAt;
+    private HashMap<String, Date> dates;
     private List<String> tags;
     private List<CustomFieldValue> customFields;
     private SatisfactionRating satisfactionRating;
@@ -95,6 +97,15 @@ public class Ticket extends Request implements SearchResultEntity {
 
     public void setDueAt(Date dueAt) {
         this.dueAt = dueAt;
+    }
+
+    @JsonProperty("dates")
+    public HashMap<String, Date> getDates() {
+        return dates;
+    }
+
+    public void setDates(HashMap<String, Date> dates) {
+        this.dates = dates;
     }
 
     @JsonProperty("external_id")
