@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -28,6 +29,10 @@ public class Ticket extends Request implements SearchResultEntity {
     private Long problemId;
     private boolean hasIncidents;
     private Date dueAt;
+    @JsonProperty("dates")
+    private TicketDates dates;
+    @JsonProperty("metric_set")
+    private Metric metric;
     private List<String> tags;
     private List<CustomFieldValue> customFields;
     private SatisfactionRating satisfactionRating;
@@ -95,6 +100,14 @@ public class Ticket extends Request implements SearchResultEntity {
 
     public void setDueAt(Date dueAt) {
         this.dueAt = dueAt;
+    }
+
+    public TicketDates getDates() {
+        return dates;
+    }
+
+    public Metric getMetric() {
+        return metric;
     }
 
     @JsonProperty("external_id")
@@ -340,6 +353,29 @@ public class Ticket extends Request implements SearchResultEntity {
                     ", email='" + email + '\'' +
                     '}';
         }
+    }
+
+    public static class TicketDates {
+
+        @JsonProperty("assignee_updated_at")
+        public Date assigneeUpdatedAt;
+        @JsonProperty("requester_updated_at")
+        public Date requesterUpdatedAt;
+        @JsonProperty("status_updated_at")
+        public Date statusUpdatedAt;
+        @JsonProperty("initially_assigned_at")
+        public Date initiallyAssignedAt;
+        @JsonProperty("assigned_at")
+        public Date assignedAt;
+        @JsonProperty("solved_at")
+        public Date solvedAt;
+        @JsonProperty("latest_comment_added_at")
+        public Date latestCommentAddedAt;
+
+        public TicketDates() {
+
+        }
+
     }
 
 }
