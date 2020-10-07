@@ -25,8 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 /**
@@ -44,6 +43,7 @@ public class Zendesk implements Closeable {
     private final ObjectMapper mapper;
     private final Logger logger;
     private boolean closed = false;
+    private boolean retry;
     private static final Map<String, Class<? extends SearchResultEntity>> searchResultTypes = searchResultTypes();
     private static final Map<String, Class<? extends Target>> targetTypes = targetTypes();
 
@@ -76,7 +76,7 @@ public class Zendesk implements Closeable {
        return Collections.unmodifiableMap(result);
     }
 
-    private Zendesk(AsyncHttpClient client, String url, String username, String password, Map<String, String> headers) {
+    private Zendesk(AsyncHttpClient client, String url, String username, String password, Map<String, String> headers, boolean retry) {
         this.logger = LoggerFactory.getLogger(Zendesk.class);
         this.closeClient = client == null;
         this.oauthToken = null;
@@ -95,10 +95,11 @@ public class Zendesk implements Closeable {
         }
         this.headers = Collections.unmodifiableMap(headers);
         this.mapper = createMapper();
+        this.retry = retry;
     }
 
 
-    private Zendesk(AsyncHttpClient client, String url, String oauthToken, Map<String, String> headers) {
+    private Zendesk(AsyncHttpClient client, String url, String oauthToken, Map<String, String> headers, boolean retry) {
         this.logger = LoggerFactory.getLogger(Zendesk.class);
         this.closeClient = client == null;
         this.realm = null;
@@ -112,6 +113,7 @@ public class Zendesk implements Closeable {
         this.headers = Collections.unmodifiableMap(headers);
 
         this.mapper = createMapper();
+        this.retry = retry;
     }
 
 
@@ -2157,10 +2159,20 @@ public class Zendesk implements Closeable {
                 logger.debug("Request {} {}", request.getMethod(), request.getUrl());
             }
         }
+
+        handler.setRequest(request);
+
         return client.executeRequest(request, handler);
     }
 
-    private static abstract class ZendeskAsyncCompletionHandler<T> extends AsyncCompletionHandler<T> {
+    abstract static class ZendeskAsyncCompletionHandler<T> extends AsyncCompletionHandler<T> {
+
+        protected Request request;
+
+        public void setRequest(Request request) {
+            this.request = request;
+        }
+
         @Override
         public void onThrowable(Throwable t) {
             if (t instanceof IOException) {
@@ -2207,7 +2219,7 @@ public class Zendesk implements Closeable {
                 if (isStatus2xx(response)) {
                     return null;
                 } else if (isRateLimitResponse(response)) {
-                    throw new ZendeskResponseRateLimitException(response);
+                    throw new ZendeskResponseRateLimitException(response, request, this);
                 }
                 throw new ZendeskResponseException(response);
             }
@@ -2223,7 +2235,7 @@ public class Zendesk implements Closeable {
                 if (isStatus2xx(response)) {
                     return (T) mapper.readerFor(clazz).readValue(response.getResponseBodyAsStream());
                 } else if (isRateLimitResponse(response)) {
-                    throw new ZendeskResponseRateLimitException(response);
+                    throw new ZendeskResponseRateLimitException(response, request, this);
                 }
                 if (response.getStatusCode() == 404) {
                     return null;
@@ -2254,7 +2266,7 @@ public class Zendesk implements Closeable {
                 }
                 return mapper.convertValue(mapper.readTree(response.getResponseBodyAsStream()).get(name), clazz);
             } else if (isRateLimitResponse(response)) {
-                throw new ZendeskResponseRateLimitException(response);
+                throw new ZendeskResponseRateLimitException(response, request, this);
             }
             if (response.getStatusCode() == 404) {
                 return null;
@@ -2328,7 +2340,7 @@ public class Zendesk implements Closeable {
                 }
                 return values;
             } else if (isRateLimitResponse(response)) {
-                throw new ZendeskResponseRateLimitException(response);
+                throw new ZendeskResponseRateLimitException(response, request, this);
             }
             throw new ZendeskResponseException(response);
         }
@@ -2407,7 +2419,7 @@ public class Zendesk implements Closeable {
                     }
                     return values;
                 } else if (isRateLimitResponse(response)) {
-                    throw new ZendeskResponseRateLimitException(response);
+                    throw new ZendeskResponseRateLimitException(response, request, this);
                 }
                 throw new ZendeskResponseException(response);
             }
@@ -2431,7 +2443,7 @@ public class Zendesk implements Closeable {
                     }
                     return values;
                 } else if (isRateLimitResponse(response)) {
-                    throw new ZendeskResponseRateLimitException(response);
+                    throw new ZendeskResponseRateLimitException(response, request, this);
                 }
                 throw new ZendeskResponseException(response);
             }
@@ -2452,7 +2464,7 @@ public class Zendesk implements Closeable {
                     }
                     return values;
                 } else if (isRateLimitResponse(response)) {
-                    throw new ZendeskResponseRateLimitException(response);
+                    throw new ZendeskResponseRateLimitException(response, request, this);
                 }
                 throw new ZendeskResponseException(response);
             }
@@ -2503,7 +2515,7 @@ public class Zendesk implements Closeable {
     // Static helper methods
     //////////////////////////////////////////////////////////////////////
 
-    private static <T> T complete(ListenableFuture<T> future) {
+    private <T> T complete(Future<T> future) {
         try {
             return future.get();
         } catch (InterruptedException e) {
@@ -2511,7 +2523,27 @@ public class Zendesk implements Closeable {
         } catch (ExecutionException e) {
             if (e.getCause() instanceof ZendeskException) {
                 if (e.getCause() instanceof ZendeskResponseRateLimitException) {
-                    throw new ZendeskResponseRateLimitException((ZendeskResponseRateLimitException) e.getCause());
+                    ZendeskResponseRateLimitException exception = (ZendeskResponseRateLimitException) e.getCause();
+
+                    if (!retry) {
+                        throw exception;
+                    }
+
+                    logger.warn("Got API rate limit exceeded error, retrying after {} sec", exception.getRetryAfter());
+
+                    ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
+
+                    try {
+                        return (T) scheduler.schedule(() -> {
+                                    logger.debug("Executing retry task");
+                                    return complete(submit(exception.getRequest(), exception.getHandler()));
+                                }, exception.getRetryAfter(), TimeUnit.SECONDS)
+                                .get();
+                    } catch (InterruptedException | ExecutionException ex) {
+                        throw new ZendeskException(e.getMessage(), e);
+                    } finally {
+                        scheduler.shutdown();
+                    }
                 }
                 if (e.getCause() instanceof ZendeskResponseException) {
                     throw new ZendeskResponseException((ZendeskResponseException)e.getCause());
@@ -2809,6 +2841,7 @@ public class Zendesk implements Closeable {
         private String token = null;
         private String oauthToken = null;
         private final Map<String, String> headers;
+        private boolean retry = true;
 
         public Builder(String url) {
             this.url = url;
@@ -2855,6 +2888,7 @@ public class Zendesk implements Closeable {
 
 
         public Builder setRetry(boolean retry) {
+            this.retry = retry;
             return this;
         }
 
@@ -2867,11 +2901,11 @@ public class Zendesk implements Closeable {
 
         public Zendesk build() {
             if (token != null) {
-                return new Zendesk(client, url, username + "/token", token, headers);
+                return new Zendesk(client, url, username + "/token", token, headers, retry);
             } else if (oauthToken != null) {
-                return new Zendesk(client, url, oauthToken, headers);
+                return new Zendesk(client, url, oauthToken, headers, retry);
             }
-            return new Zendesk(client, url, username, password, headers);
+            return new Zendesk(client, url, username, password, headers, retry);
         }
     }
 }

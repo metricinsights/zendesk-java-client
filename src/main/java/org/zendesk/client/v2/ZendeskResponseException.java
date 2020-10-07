@@ -16,7 +16,7 @@ public class ZendeskResponseException extends ZendeskException {
     private String statusText;
     private String body;
 
-    public ZendeskResponseException(Response resp) throws IOException {
+    public ZendeskResponseException(Response resp) {
         this(resp.getStatusCode(), resp.getStatusText(), resp.getResponseBody());
     }
 
