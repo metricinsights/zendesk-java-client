@@ -13,6 +13,7 @@ import org.slf4j.LoggerFactory;
 import org.zendesk.client.v2.model.*;
 import org.zendesk.client.v2.model.dynamic.DynamicContentItem;
 import org.zendesk.client.v2.model.dynamic.DynamicContentItemVariant;
+import org.zendesk.client.v2.model.explore.Tag;
 import org.zendesk.client.v2.model.hc.*;
 import org.zendesk.client.v2.model.schedules.Holiday;
 import org.zendesk.client.v2.model.schedules.Schedule;
@@ -37,6 +38,7 @@ public class Zendesk implements Closeable {
     private final boolean closeClient;
     private final AsyncHttpClient client;
     private final Realm realm;
+    private final String baseUrl;
     private final String url;
     private final String oauthToken;
     private final Map<String, String> headers;
@@ -81,6 +83,7 @@ public class Zendesk implements Closeable {
         this.closeClient = client == null;
         this.oauthToken = null;
         this.client = client == null ? new DefaultAsyncHttpClient() : client;
+        this.baseUrl = url;
         this.url = url.endsWith("/") ? url + "api/v2" : url + "/api/v2";
         if (username != null) {
             this.realm = new Realm.Builder(username, password)
@@ -104,6 +107,7 @@ public class Zendesk implements Closeable {
         this.closeClient = client == null;
         this.realm = null;
         this.client = client == null ? new DefaultAsyncHttpClient() : client;
+        this.baseUrl = url;
         this.url = url.endsWith("/") ? url + "api/v2" : url + "/api/v2";
         if (oauthToken != null) {
             this.oauthToken = oauthToken;
@@ -164,6 +168,10 @@ public class Zendesk implements Closeable {
     public List<Brand> getBrands(){
         return complete(submit(req("GET", cnst("/brands.json")), handleList(Brand.class,
                 "brands")));
+    }
+
+    public List<Tag> getExploreTags() {
+        return complete(submit(req("GET", cnstBase("/explore/tags.json")), handleList(Tag.class)));
     }
 
     public TicketForm getTicketForm(long id) {
@@ -2323,6 +2331,12 @@ public class Zendesk implements Closeable {
     private class PagedAsyncListCompletionHandler<T> extends PagedAsyncCompletionHandler<List<T>> {
         private final Class<T> clazz;
         private final String name;
+
+        public PagedAsyncListCompletionHandler(Class<T> clazz) {
+            this.clazz = clazz;
+            this.name = null;
+        }
+
         public PagedAsyncListCompletionHandler(Class<T> clazz, String name) {
             this.clazz = clazz;
             this.name = name;
@@ -2335,7 +2349,7 @@ public class Zendesk implements Closeable {
                 JsonNode responseNode = mapper.readTree(response.getResponseBodyAsBytes());
                 setPagedProperties(responseNode, clazz);
                 List<T> values = new ArrayList<>();
-                for (JsonNode node : responseNode.get(name)) {
+                for (JsonNode node : name != null ? responseNode.get(name) : responseNode) {
                     values.add(mapper.convertValue(node, clazz));
                 }
                 return values;
@@ -2348,6 +2362,10 @@ public class Zendesk implements Closeable {
 
     protected <T> PagedAsyncCompletionHandler<List<T>> handleList(final Class<T> clazz, final String name) {
         return new PagedAsyncListCompletionHandler<>(clazz, name);
+    }
+
+    protected <T> PagedAsyncCompletionHandler<List<T>> handleList(final Class<T> clazz) {
+        return new PagedAsyncListCompletionHandler<>(clazz);
     }
 
     private static final long FIVE_MINUTES = TimeUnit.MINUTES.toMillis(5);
@@ -2477,6 +2495,10 @@ public class Zendesk implements Closeable {
 
     private Uri cnst(String template) {
         return new FixedUri(url + template);
+    }
+
+    private Uri cnstBase(String template) {
+        return new FixedUri(baseUrl + template);
     }
 
     private void logResponse(Response response) throws IOException {
