@@ -13,6 +13,9 @@ import org.slf4j.LoggerFactory;
 import org.zendesk.client.v2.model.*;
 import org.zendesk.client.v2.model.dynamic.DynamicContentItem;
 import org.zendesk.client.v2.model.dynamic.DynamicContentItemVariant;
+import org.zendesk.client.v2.model.explore.MediaJob;
+import org.zendesk.client.v2.model.explore.Tab;
+import org.zendesk.client.v2.model.explore.TabExport;
 import org.zendesk.client.v2.model.explore.Tag;
 import org.zendesk.client.v2.model.hc.*;
 import org.zendesk.client.v2.model.schedules.Holiday;
@@ -172,6 +175,27 @@ public class Zendesk implements Closeable {
 
     public List<Tag> getExploreTags() {
         return complete(submit(req("GET", cnstBase("/explore/tags.json")), handleList(Tag.class)));
+    }
+
+    public Tag getExploreTag(Integer id) {
+        return complete(submit(req("GET", tmplBase("/explore/tags/{id}.json").set("id", id)), handle(Tag.class)));
+    }
+
+    public List<Tab> getExploreTabs() {
+        return complete(submit(req("GET", cnstBase("/explore/tabs.json")), handleList(Tab.class)));
+    }
+
+    public Tab getExploreTab(Integer id) {
+        return complete(submit(req("GET", tmplBase("/explore/tabs/{id}.json").set("id", id)), handle(Tab.class)));
+    }
+
+    public Integer executeTabExportJob(TabExport tabExport) {
+        return complete(submit(req("POST", cnstBase("/explore-jobs/api/jobs/tabexport"), JSON,
+                json(tabExport)), handle(Integer.class)));
+    }
+
+    public MediaJob getTabExportJobStatus(Integer jobId) {
+        return complete(submit(req("GET", tmplBase("/explore-jobs/api/jobs/tabexport/{id}").set("id", jobId)), handle(MediaJob.class)));
     }
 
     public TicketForm getTicketForm(long id) {
@@ -2493,6 +2517,10 @@ public class Zendesk implements Closeable {
         return new TemplateUri(url + template);
     }
 
+    private TemplateUri tmplBase(String template) {
+        return new TemplateUri(baseUrl + template);
+    }
+
     private Uri cnst(String template) {
         return new FixedUri(url + template);
     }
@@ -2798,6 +2826,7 @@ public class Zendesk implements Closeable {
         mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
         mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+        mapper.disable(SerializationFeature.FAIL_ON_EMPTY_BEANS);
         mapper.setDateFormat(new StdDateFormat());
         return mapper;
     }
