@@ -1598,12 +1598,6 @@ public class Zendesk implements Closeable {
         complete(submit(req("DELETE", tmpl("/groups/{id}.json").set("id", id)), handleStatus()));
     }
 
-    // Views
-    public Iterable<View> getViews() {
-        return new PagedIterable<>(cnst("/views.json"),
-                handleList(View.class, "views"));
-    }
-
     public Iterable<Macro> getMacros(){
         return new PagedIterable<>(cnst("/macros.json"),
                 handleList(Macro.class, "macros"));
