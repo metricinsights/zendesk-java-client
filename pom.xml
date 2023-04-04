@@ -93,8 +93,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <repo.host>repo.metricinsights.com</repo.host>
         <repo.root>var/www/repo.metricinsights.com</repo.root>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
     </properties>
 
     <distributionManagement>
