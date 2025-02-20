@@ -193,44 +193,6 @@
         </dependency>
     </dependencies>
 
-    <plugins>
-        <plugin>
-            <groupId>org.sonatype.plugins</groupId>
-            <artifactId>nexus-staging-maven-plugin</artifactId>
-            <executions>
-                <execution>
-                    <phase>none</phase>
-                </execution>
-            </executions>
-            <configuration>
-                <skipStaging>true</skipStaging>
-                <skipLocalStaging>true</skipLocalStaging>
-                <skipRemoteStaging>true</skipRemoteStaging>
-                <skipNexusStagingDeployMojo>true</skipNexusStagingDeployMojo>
-                <skipStagingRepositoryClose>true</skipStagingRepositoryClose>
-            </configuration>
-        </plugin>
-        <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-jar-plugin</artifactId>
-            <version>3.3.0</version>
-            <configuration>
-                <archive>
-                    <manifestEntries>
-                        <Automatic-Module-Name>org.zendesk.client.v2</Automatic-Module-Name>
-                    </manifestEntries>
-                </archive>
-            </configuration>
-        </plugin>
-    </plugins>
-    <extensions>
-        <extension>
-            <groupId>org.apache.maven.wagon</groupId>
-            <artifactId>wagon-ssh-external</artifactId>
-            <version>2.10</version>
-        </extension>
-    </extensions>
-
     <build>
         <pluginManagement>
             <plugins>
@@ -343,35 +305,6 @@
                         </manifestEntries>
                     </archive>
                 </configuration>
-            </plugin>
-            <plugin>
-                <groupId>com.diffplug.spotless</groupId>
-                <artifactId>spotless-maven-plugin</artifactId>
-                <version>${spotless.version}</version>
-                <configuration>
-                    <java>
-                        <toggleOffOn>
-                            <off>@formatter:off</off>
-              <on>@formatter:on</on>
-                        </toggleOffOn>
-                        <googleJavaFormat/>
-                        <importOrder/>
-                        <removeUnusedImports/>
-                        <formatAnnotations/>
-                    </java>
-                    <pom>
-                        <sortPom>
-                            <expandEmptyElements>false</expandEmptyElements>
-                        </sortPom>
-                    </pom>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
