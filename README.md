@@ -82,12 +82,21 @@ Here is the status of the various API components:
 * [Attachments](https://developer.zendesk.com/api-reference/ticketing/tickets/ticket-attachments/) ✓
 * [Automations](https://developer.zendesk.com/api-reference/ticketing/business-rules/automations/) ✓
 * [Job Statuses](https://developer.zendesk.com/api-reference/ticketing/ticket-management/job_statuses/) ✓
-* [Locales](https://developer.zendesk.com/api-reference/ticketing/account-configuration/locales/)
+* [Locales](https://developer.zendesk.com/api-reference/ticketing/account-configuration/locales/) - Partial (List Locales)
 * [Macros](https://developer.zendesk.com/api-reference/ticketing/business-rules/macros/) ✓ *except for restrictions*
 * [Satisfaction Ratings](https://developer.zendesk.com/api-reference/ticketing/ticket-management/satisfaction_ratings/) ✓
 * [Sharing Agreements](https://developer.zendesk.com/api-reference/ticketing/account-configuration/sharing_agreements/)
 * [Suspended Tickets](https://developer.zendesk.com/api-reference/ticketing/tickets/suspended_tickets/)
 * [Triggers](https://developer.zendesk.com/api-reference/ticketing/business-rules/triggers/) ✓
+
+JDK Support
+------
+
+The current version of this project supports Java 11 and above.
+It is built on Java 11 and Java 17.
+The release is built using Java 11.
+
+Latest version supporting Java 8: 0.24.3 (https://github.com/cloudbees-oss/zendesk-java-client/releases/tag/zendesk-java-client-0.24.3).
 
 History
 -------

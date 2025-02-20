@@ -1,10 +1,11 @@
 package org.zendesk.client.v2.model;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonInclude.Include;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -14,11 +15,9 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Ticket extends Request implements SearchResultEntity {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = -7559199410302237012L;
 
     private String externalId;
-    private Type type;
-    private Priority priority;
     private String recipient;
     private Long submitterId;
     private Long assigneeId;
@@ -34,13 +33,14 @@ public class Ticket extends Request implements SearchResultEntity {
     @JsonProperty("metric_set")
     private Metric metric;
     private List<String> tags;
-    private List<CustomFieldValue> customFields;
+
     private SatisfactionRating satisfactionRating;
     private List<Long> sharingAgreementIds;
     private List<Long> followupIds;
     private Long ticketFormId;
     private Long brandId;
     private Boolean isPublic;
+    private Boolean safeUpdate;
 
     public Ticket() {
     }
@@ -82,15 +82,6 @@ public class Ticket extends Request implements SearchResultEntity {
 
     public void setCollaborators(List<Collaborator> collaborators) {
         this.collaborators = collaborators;
-    }
-
-    @JsonProperty("custom_fields")
-    public List<CustomFieldValue> getCustomFields() {
-        return customFields;
-    }
-
-    public void setCustomFields(List<CustomFieldValue> customFields) {
-        this.customFields = customFields;
     }
 
     @JsonProperty("due_at")
@@ -153,14 +144,6 @@ public class Ticket extends Request implements SearchResultEntity {
 
     public void setHasIncidents(boolean hasIncidents) {
         this.hasIncidents = hasIncidents;
-    }
-
-    public Priority getPriority() {
-        return priority;
-    }
-
-    public void setPriority(Priority priority) {
-        this.priority = priority;
     }
 
     @JsonProperty("problem_id")
@@ -244,14 +227,6 @@ public class Ticket extends Request implements SearchResultEntity {
         this.ticketFormId = ticketFormId;
     }
 
-    public Type getType() {
-        return type;
-    }
-
-    public void setType(Type type) {
-        this.type = type;
-    }
-
     @JsonProperty("is_public")
     public Boolean getIsPublic() {
         return isPublic;
@@ -261,40 +236,108 @@ public class Ticket extends Request implements SearchResultEntity {
         this.isPublic = isPublic;
     }
 
+    /**
+     * The safe_update &amp; update_stamp parameters are used by the Zendesk API to protect against
+     * update collisions. If the safe_update parameter is set to true and Zendesk detects that a
+     * ticket has been updated since the time specified in update_stamp then it will return an HTTP
+     * CONFLICT status to let the caller know that the ticket was not successfully updated.
+     *
+     * <p>These properties are annotated with JsonInclude(Include.NON_DEFAULT) so that they will only
+     * be serialized to JSON if safeUpdate is set to TRUE.
+     *
+     * <p>For more information see Zendesk documentation at:
+     * https://developer.zendesk.com/documentation/ticketing/managing-tickets/creating-and-updating-tickets/#protecting-against-ticket-update-collisions
+     */
+    @JsonInclude(Include.NON_DEFAULT)
+    @JsonProperty("safe_update")
+    public Boolean getSafeUpdate() {
+        return safeUpdate;
+    }
+
+    public void setSafeUpdate(Boolean safeUpdate) {
+        this.safeUpdate = safeUpdate;
+    }
+
+    @JsonInclude(Include.NON_DEFAULT)
+    @JsonProperty("updated_stamp")
+    private Date getUpdatedStamp() {
+        return Boolean.TRUE.equals(safeUpdate) ? updatedAt : null;
+    }
+
     @Override
     public String toString() {
-        return "Ticket" +
-                "{assigneeId=" + assigneeId +
-                ", id=" + id +
-                ", url='" + url + '\'' +
-                ", externalId='" + externalId + '\'' +
-                ", type='" + type + '\'' +
-                ", subject='" + subject + '\'' +
-                ", description='" + description + '\'' +
-                ", priority='" + priority + '\'' +
-                ", status='" + status + '\'' +
-                ", recipient='" + recipient + '\'' +
-                ", requesterId=" + requesterId +
-                ", submitterId=" + submitterId +
-                ", organizationId=" + organizationId +
-                ", groupId=" + groupId +
-                ", collaboratorIds=" + collaboratorIds +
-                ", forumTopicId=" + forumTopicId +
-                ", problemId=" + problemId +
-                ", hasIncidents=" + hasIncidents +
-                ", dueAt=" + dueAt +
-                ", tags=" + tags +
-                ", via=" + via +
-                ", customFields=" + customFields +
-                ", satisfactionRating=" + satisfactionRating +
-                ", sharingAgreementIds=" + sharingAgreementIds +
-                ", followupIds=" + followupIds +
-                ", ticketFormId=" + ticketFormId +
-                ", brandId=" + brandId +
-                ", isPublic=" + isPublic +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
-                '}';
+        return "Ticket"
+                + "{assigneeId="
+                + assigneeId
+                + ", id="
+                + id
+                + ", url='"
+                + url
+                + '\''
+                + ", externalId='"
+                + externalId
+                + '\''
+                + ", type='"
+                + type
+                + '\''
+                + ", subject='"
+                + subject
+                + '\''
+                + ", description='"
+                + description
+                + '\''
+                + ", priority='"
+                + priority
+                + '\''
+                + ", status='"
+                + status
+                + '\''
+                + ", recipient='"
+                + recipient
+                + '\''
+                + ", requesterId="
+                + requesterId
+                + ", submitterId="
+                + submitterId
+                + ", organizationId="
+                + organizationId
+                + ", groupId="
+                + groupId
+                + ", collaboratorIds="
+                + collaboratorIds
+                + ", forumTopicId="
+                + forumTopicId
+                + ", problemId="
+                + problemId
+                + ", hasIncidents="
+                + hasIncidents
+                + ", dueAt="
+                + dueAt
+                + ", tags="
+                + tags
+                + ", via="
+                + via
+                + ", customFields="
+                + customFields
+                + ", satisfactionRating="
+                + satisfactionRating
+                + ", sharingAgreementIds="
+                + sharingAgreementIds
+                + ", followupIds="
+                + followupIds
+                + ", ticketFormId="
+                + ticketFormId
+                + ", brandId="
+                + brandId
+                + ", isPublic="
+                + isPublic
+                + ", safeUpdate="
+                + safeUpdate
+                + ", createdAt="
+                + createdAt
+                + ", updatedAt="
+                + updatedAt
+                + '}';
     }
 
     public static class Requester {
